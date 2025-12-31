@@ -511,12 +511,10 @@ keys.globalkeys = gears.table.join(
         -- rofi_show()
     end, {description = "dashboard", group = "custom"}),
 
-    -- Notification history
+    -- Notification history (show sidebar)
     awful.key({ superkey }, "n", function()
-        if notification_history_toggle then
-            notification_history_toggle()
-        end
-    end, {description = "notification history", group = "custom"}),
+        sidebar_show()
+    end, {description = "show notification history (sidebar)", group = "custom"}),
 
     -- App drawer
     awful.key({ superkey }, "a", function()

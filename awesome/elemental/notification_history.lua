@@ -7,16 +7,12 @@ local naughty = require("naughty")
 local helpers = require("helpers")
 local history = require("notifications.history")
 
--- Notification history panel
+-- Notification history widget for sidebar
 -- ===================================================================
 
-local panel_visible = false
-local panel_width = dpi(500)
-local panel_height = dpi(600)
-
--- Create the notification history panel
+-- Create a single notification item widget
 local function create_notification_item(notification_data, index)
-    local icon_font = "icomoon 16"
+    local icon_font = "icomoon 12"
 
     -- Default icon mapping (similar to amarena theme)
     local app_icons = {
@@ -46,95 +42,81 @@ local function create_notification_item(notification_data, index)
             {
                 {
                     -- Icon
+                    markup = helpers.colorize_text(icon_text, color),
+                    font = icon_font,
+                    align = "center",
+                    valign = "center",
+                    widget = wibox.widget.textbox,
+                },
+                forced_width = dpi(28),
+                bg = x.background,
+                widget = wibox.container.background,
+            },
+            {
+                {
+                    -- Title
                     {
-                        markup = helpers.colorize_text(icon_text, color),
-                        font = icon_font,
-                        align = "center",
-                        valign = "center",
+                        markup = "<b>" .. gears.string.xml_escape(notification_data.title) .. "</b>",
+                        font = "sans bold 8",
                         widget = wibox.widget.textbox,
                     },
-                    forced_width = dpi(40),
-                    bg = x.background,
-                    widget = wibox.container.background,
-                },
-                {
+                    -- Message (truncated)
                     {
-                        -- Title and message
-                        {
-                            {
-                                markup = "<b>" .. gears.string.xml_escape(notification_data.title) .. "</b>",
-                                font = "sans bold 10",
-                                widget = wibox.widget.textbox,
-                            },
-                            {
-                                markup = gears.string.xml_escape(notification_data.message),
-                                font = "sans 9",
-                                widget = wibox.widget.textbox,
-                            },
-                            spacing = dpi(2),
-                            layout = wibox.layout.fixed.vertical,
-                        },
-                        left = dpi(10),
-                        right = dpi(10),
-                        widget = wibox.container.margin,
+                        markup = gears.string.xml_escape(notification_data.message):sub(1, 50) ..
+                                 (notification_data.message:len() > 50 and "..." or ""),
+                        font = "sans 7",
+                        widget = wibox.widget.textbox,
                     },
-                    {
-                        -- Timestamp
-                        {
-                            markup = helpers.colorize_text(time_str, x.color8),
-                            font = "sans 8",
-                            align = "right",
-                            valign = "top",
-                            widget = wibox.widget.textbox,
-                        },
-                        top = dpi(2),
-                        right = dpi(10),
-                        widget = wibox.container.margin,
-                    },
-                    layout = wibox.layout.align.horizontal,
+                    spacing = dpi(1),
+                    layout = wibox.layout.fixed.vertical,
                 },
-                layout = wibox.layout.fixed.horizontal,
+                left = dpi(8),
+                right = dpi(5),
+                widget = wibox.container.margin,
             },
-            margins = dpi(8),
-            widget = wibox.container.margin,
+            {
+                -- Timestamp
+                markup = helpers.colorize_text(time_str, x.color8),
+                font = "sans 6",
+                align = "right",
+                valign = "top",
+                widget = wibox.widget.textbox,
+            },
+            layout = wibox.layout.align.horizontal,
         },
+        margins = dpi(4),
+        widget = wibox.container.margin,
+    }
+
+    local container = wibox.widget {
+        item,
         bg = x.color0,
-        shape = helpers.rrect(dpi(6)),
+        shape = helpers.rrect(dpi(4)),
         widget = wibox.container.background,
     }
 
     -- Hover effect
-    item:connect_signal("mouse::enter", function()
-        item.bg = x.color8 .. "40"
+    container:connect_signal("mouse::enter", function()
+        container.bg = x.color8 .. "40"
     end)
-    item:connect_signal("mouse::leave", function()
-        item.bg = x.color0
+    container:connect_signal("mouse::leave", function()
+        container.bg = x.color0
     end)
 
     -- Click to remove
-    item:buttons(gears.table.join(
+    container:buttons(gears.table.join(
         awful.button({}, 1, function()
-            history.remove(index)
-        end),
-        awful.button({}, 3, function()
             history.remove(index)
         end)
     ))
 
-    return item
+    return container
 end
 
+-- Create the scrollable notification list
 local notification_list = wibox.widget {
-    spacing = dpi(8),
+    spacing = dpi(4),
     layout = wibox.layout.fixed.vertical,
-}
-
-local scrollbox = wibox.widget {
-    notification_list,
-    step_function = wibox.container.scroll.step_functions.waiting_nonlinear_back_and_forth,
-    fps = 60,
-    speed = 75,
-    layout = wibox.container.scroll.vertical,
 }
 
 local function update_notification_list()
@@ -144,137 +126,99 @@ local function update_notification_list()
         notification_list:add(wibox.widget {
             {
                 markup = helpers.colorize_text("No notifications", x.color8),
-                font = "sans 12",
+                font = "sans 9",
                 align = "center",
                 valign = "center",
                 widget = wibox.widget.textbox,
             },
-            forced_height = dpi(100),
+            forced_height = dpi(40),
             widget = wibox.container.place,
         })
     else
-        for i, notification_data in ipairs(history.notifications) do
-            notification_list:add(create_notification_item(notification_data, i))
+        -- Show only the last 5 notifications to keep it compact
+        local max_display = math.min(5, #history.notifications)
+        for i = 1, max_display do
+            notification_list:add(create_notification_item(history.notifications[i], i))
+        end
+
+        -- If there are more notifications, show a count
+        if #history.notifications > max_display then
+            notification_list:add(wibox.widget {
+                {
+                    markup = helpers.colorize_text(
+                        string.format("+%d more", #history.notifications - max_display),
+                        x.color8
+                    ),
+                    font = "sans 7",
+                    align = "center",
+                    widget = wibox.widget.textbox,
+                },
+                top = dpi(5),
+                widget = wibox.container.margin,
+            })
         end
     end
 end
 
--- Header
+-- Header with title and clear button
 local header = wibox.widget {
     {
         {
-            {
-                markup = helpers.colorize_text("", x.color4),
-                font = "icomoon 14",
-                widget = wibox.widget.textbox,
-            },
-            {
-                markup = " Notification History",
-                font = "sans bold 12",
-                widget = wibox.widget.textbox,
-            },
-            spacing = dpi(8),
-            layout = wibox.layout.fixed.horizontal,
+            markup = helpers.colorize_text("", x.color4),
+            font = "icomoon 10",
+            widget = wibox.widget.textbox,
         },
         {
-            {
-                markup = helpers.colorize_text("", x.color9),
-                font = "icomoon 12",
-                widget = wibox.widget.textbox,
-            },
-            buttons = gears.table.join(
-                awful.button({}, 1, function()
-                    history.clear()
-                end)
-            ),
-            widget = wibox.container.background,
+            markup = " Notifications",
+            font = "sans bold 9",
+            widget = wibox.widget.textbox,
         },
-        layout = wibox.layout.align.horizontal,
+        spacing = dpi(5),
+        layout = wibox.layout.fixed.horizontal,
     },
-    left = dpi(15),
-    right = dpi(15),
-    top = dpi(15),
+    {
+        {
+            markup = helpers.colorize_text("", x.color9),
+            font = "icomoon 9",
+            widget = wibox.widget.textbox,
+        },
+        buttons = gears.table.join(
+            awful.button({}, 1, function()
+                history.clear()
+            end)
+        ),
+        widget = wibox.container.background,
+    },
+    layout = wibox.layout.align.horizontal,
+}
+
+-- Add hover cursor to clear button
+helpers.add_hover_cursor(header:get_children_by_id('')[1] or header, "hand1")
+
+-- Main notification history widget
+notification_history_widget = wibox.widget {
+    {
+        header,
+        {
+            notification_list,
+            top = dpi(8),
+            widget = wibox.container.margin,
+        },
+        spacing = dpi(5),
+        layout = wibox.layout.fixed.vertical,
+    },
+    top = dpi(10),
     bottom = dpi(10),
     widget = wibox.container.margin,
 }
 
--- Main panel widget
-local panel_widget = wibox.widget {
-    {
-        header,
-        {
-            scrollbox,
-            margins = dpi(15),
-            widget = wibox.container.margin,
-        },
-        layout = wibox.layout.fixed.vertical,
-    },
-    bg = x.color0,
-    shape = helpers.rrect(dpi(10)),
-    border_width = dpi(2),
-    border_color = x.color8,
-    widget = wibox.container.background,
-}
-
--- Create the popup
-local notification_history_popup = awful.popup {
-    widget = panel_widget,
-    visible = false,
-    ontop = true,
-    placement = awful.placement.centered,
-    shape = helpers.rrect(dpi(10)),
-    bg = "#00000000",
-    preferred_positions = "top",
-    preferred_anchors = "middle",
-    width = panel_width,
-    height = panel_height,
-}
-
--- Toggle function
-local function toggle()
-    if panel_visible then
-        notification_history_popup.visible = false
-        panel_visible = false
-    else
-        update_notification_list()
-        notification_history_popup.visible = true
-        panel_visible = true
-    end
-end
-
--- Hide function
-local function hide()
-    notification_history_popup.visible = false
-    panel_visible = false
-end
-
--- Show function
-local function show()
-    update_notification_list()
-    notification_history_popup.visible = true
-    panel_visible = true
-end
-
 -- Update list when history changes
 awesome.connect_signal("notification_history::updated", function()
-    if panel_visible then
-        update_notification_list()
-    end
+    update_notification_list()
 end)
 
--- Hide on global dismiss signal
-awesome.connect_signal("elemental::dismiss", function()
-    hide()
-end)
+-- Initialize with current state
+update_notification_list()
 
--- Hide when clicking outside
-notification_history_popup:connect_signal("button::press", function(_, _, _, button)
-    if button == 1 then
-        hide()
-    end
-end)
-
--- Make functions globally accessible
-notification_history_toggle = toggle
-notification_history_hide = hide
-notification_history_show = show
+-- Make it globally accessible for sidebar integration
+return notification_history_widget
