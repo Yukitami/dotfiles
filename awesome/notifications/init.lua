@@ -43,6 +43,11 @@ function notifications.init(theme_name)
     require("notifications.mpd")
     require("notifications.league_of_legends")
     require("notifications.keyboardlayout")
+
+    -- Initialize notification history
+    local history = require("notifications.history")
+    history.init()
+
     -- Load theme
     require("notifications.themes." .. theme_name)
 end

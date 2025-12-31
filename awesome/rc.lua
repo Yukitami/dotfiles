@@ -232,6 +232,8 @@ require("elemental.app_drawer")
 require("elemental.window_switcher")
 -- Toggle-able microphone overlay
 require("elemental.microphone_overlay")
+-- Notification history panel
+require("elemental.notification_history")
 
 -- >> Daemons
 -- Most widgets that display system/external info depend on evil.
