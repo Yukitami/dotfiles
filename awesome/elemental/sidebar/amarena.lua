@@ -276,6 +276,9 @@ search:buttons(gears.table.join(
 local volume_bar = require("noodle.volume_bar")
 local volume = format_progress_bar(volume_bar)
 
+-- Notification history widget
+local notification_history_widget = require("elemental.notification_history")
+
 volume:buttons(gears.table.join(
     -- Left click - Mute / Unmute
     awful.button({ }, 1, function ()
@@ -513,7 +516,15 @@ sidebar:setup {
                     expand = "none",
                     layout = wibox.layout.align.horizontal
                 },
-                helpers.vertical_pad(dpi(25)),
+                helpers.vertical_pad(dpi(15)),
+                -- Notification history
+                {
+                    notification_history_widget,
+                    left = dpi(20),
+                    right = dpi(20),
+                    widget = wibox.container.margin
+                },
+                helpers.vertical_pad(dpi(15)),
                 layout = wibox.layout.fixed.vertical
             },
             shape = helpers.prrect(beautiful.sidebar_border_radius, false, true, false, false),
