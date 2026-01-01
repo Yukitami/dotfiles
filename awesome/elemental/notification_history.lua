@@ -7,14 +7,16 @@ local naughty = require("naughty")
 local helpers = require("helpers")
 local history = require("notifications.history")
 
--- Notification history widget for sidebar
+-- Modern Notification History Widget
+-- Following contemporary UX/UI trends: card-based design, better spacing,
+-- improved typography hierarchy, smooth interactions, and visual depth
 -- ===================================================================
 
--- Create a single notification item widget
+-- Create a single notification card with modern styling
 local function create_notification_item(notification_data, index)
-    local icon_font = "icomoon 12"
+    local icon_font = "icomoon 14"
 
-    -- Default icon mapping (similar to amarena theme)
+    -- Icon mapping with modern design
     local app_icons = {
         ['battery'] = "",
         ['charger'] = "",
@@ -37,85 +39,162 @@ local function create_notification_item(notification_data, index)
     local color = urgency_colors[notification_data.urgency] or x.color4
     local time_str = history.get_time_string(notification_data.timestamp)
 
-    local item = wibox.widget {
+    -- Modern card design with icon badge
+    local icon_badge = wibox.widget {
+        {
+            {
+                markup = helpers.colorize_text(icon_text, color),
+                font = icon_font,
+                align = "center",
+                valign = "center",
+                widget = wibox.widget.textbox,
+            },
+            margins = dpi(8),
+            widget = wibox.container.margin,
+        },
+        bg = color .. "22",  -- 22 = ~13% opacity for subtle background
+        shape = gears.shape.circle,
+        forced_width = dpi(40),
+        forced_height = dpi(40),
+        widget = wibox.container.background,
+    }
+
+    -- Content with improved typography hierarchy
+    local content = wibox.widget {
+        {
+            {
+                -- Title with better contrast
+                markup = "<span foreground='" .. x.foreground .. "'><b>" ..
+                         gears.string.xml_escape(notification_data.title) .. "</b></span>",
+                font = "sans bold 9",
+                widget = wibox.widget.textbox,
+            },
+            -- Message with secondary text color
+            {
+                markup = "<span foreground='" .. x.color7 .. "'>" ..
+                         gears.string.xml_escape(notification_data.message):sub(1, 45) ..
+                         (notification_data.message:len() > 45 and "..." or "") .. "</span>",
+                font = "sans 8",
+                widget = wibox.widget.textbox,
+            },
+            spacing = dpi(3),
+            layout = wibox.layout.fixed.vertical,
+        },
+        left = dpi(12),
+        right = dpi(8),
+        widget = wibox.container.margin,
+    }
+
+    -- Timestamp badge
+    local time_badge = wibox.widget {
+        {
+            markup = "<span foreground='" .. x.color8 .. "'>" .. time_str .. "</span>",
+            font = "sans 7",
+            align = "right",
+            valign = "center",
+            widget = wibox.widget.textbox,
+        },
+        right = dpi(8),
+        widget = wibox.container.margin,
+    }
+
+    -- Card layout
+    local card_content = wibox.widget {
+        {
+            icon_badge,
+            {
+                content,
+                time_badge,
+                layout = wibox.layout.align.horizontal,
+            },
+            spacing = dpi(0),
+            layout = wibox.layout.fixed.horizontal,
+        },
+        margins = dpi(10),
+        widget = wibox.container.margin,
+    }
+
+    -- Modern card container with subtle border and background
+    local card = wibox.widget {
+        card_content,
+        bg = x.color0,
+        shape = helpers.rrect(dpi(8)),
+        border_width = dpi(1),
+        border_color = x.color8 .. "30",  -- Subtle border
+        widget = wibox.container.background,
+    }
+
+    -- Smooth hover animations
+    local original_bg = x.color0
+    local hover_bg = x.color8 .. "20"
+
+    card:connect_signal("mouse::enter", function()
+        card.bg = hover_bg
+        card.border_color = color .. "60"
+        icon_badge.bg = color .. "30"
+    end)
+
+    card:connect_signal("mouse::leave", function()
+        card.bg = original_bg
+        card.border_color = x.color8 .. "30"
+        icon_badge.bg = color .. "22"
+    end)
+
+    -- Click to remove with visual feedback
+    card:buttons(gears.table.join(
+        awful.button({}, 1, function()
+            -- Fade out animation effect (instant for now, can be animated)
+            card.opacity = 0.5
+            gears.timer.start_new(0.1, function()
+                history.remove(index)
+                return false
+            end)
+        end)
+    ))
+
+    helpers.add_hover_cursor(card, "hand1")
+
+    return card
+end
+
+-- Modern empty state
+local function create_empty_state()
+    return wibox.widget {
         {
             {
                 {
-                    -- Icon
-                    markup = helpers.colorize_text(icon_text, color),
-                    font = icon_font,
+                    markup = helpers.colorize_text("", x.color8),
+                    font = "icomoon 32",
                     align = "center",
                     valign = "center",
                     widget = wibox.widget.textbox,
                 },
-                forced_width = dpi(28),
-                bg = x.background,
-                widget = wibox.container.background,
-            },
-            {
                 {
-                    -- Title
-                    {
-                        markup = "<b>" .. gears.string.xml_escape(notification_data.title) .. "</b>",
-                        font = "sans bold 8",
-                        widget = wibox.widget.textbox,
-                    },
-                    -- Message (truncated)
-                    {
-                        markup = gears.string.xml_escape(notification_data.message):sub(1, 50) ..
-                                 (notification_data.message:len() > 50 and "..." or ""),
-                        font = "sans 7",
-                        widget = wibox.widget.textbox,
-                    },
-                    spacing = dpi(1),
-                    layout = wibox.layout.fixed.vertical,
+                    markup = "<span foreground='" .. x.color8 .. "'>No notifications yet</span>",
+                    font = "sans 10",
+                    align = "center",
+                    widget = wibox.widget.textbox,
                 },
-                left = dpi(8),
-                right = dpi(5),
-                widget = wibox.container.margin,
+                {
+                    markup = "<span foreground='" .. x.color8 .. "' size='small'>You're all caught up!</span>",
+                    font = "sans 8",
+                    align = "center",
+                    widget = wibox.widget.textbox,
+                },
+                spacing = dpi(8),
+                layout = wibox.layout.fixed.vertical,
             },
-            {
-                -- Timestamp
-                markup = helpers.colorize_text(time_str, x.color8),
-                font = "sans 6",
-                align = "right",
-                valign = "top",
-                widget = wibox.widget.textbox,
-            },
-            layout = wibox.layout.align.horizontal,
+            margins = dpi(20),
+            widget = wibox.container.margin,
         },
-        margins = dpi(4),
-        widget = wibox.container.margin,
+        forced_height = dpi(120),
+        widget = wibox.container.place,
     }
-
-    local container = wibox.widget {
-        item,
-        bg = x.color0,
-        shape = helpers.rrect(dpi(4)),
-        widget = wibox.container.background,
-    }
-
-    -- Hover effect
-    container:connect_signal("mouse::enter", function()
-        container.bg = x.color8 .. "40"
-    end)
-    container:connect_signal("mouse::leave", function()
-        container.bg = x.color0
-    end)
-
-    -- Click to remove
-    container:buttons(gears.table.join(
-        awful.button({}, 1, function()
-            history.remove(index)
-        end)
-    ))
-
-    return container
 end
 
--- Create the scrollable notification list
+-- Notification list container
 local notification_list = wibox.widget {
-    spacing = dpi(4),
+    spacing = dpi(8),  -- More breathing room between cards
     layout = wibox.layout.fixed.vertical,
 }
 
@@ -123,92 +202,119 @@ local function update_notification_list()
     notification_list:reset()
 
     if #history.notifications == 0 then
-        notification_list:add(wibox.widget {
-            {
-                markup = helpers.colorize_text("No notifications", x.color8),
-                font = "sans 9",
-                align = "center",
-                valign = "center",
-                widget = wibox.widget.textbox,
-            },
-            forced_height = dpi(40),
-            widget = wibox.container.place,
-        })
+        notification_list:add(create_empty_state())
     else
-        -- Show only the last 5 notifications to keep it compact
+        -- Show last 5 notifications
         local max_display = math.min(5, #history.notifications)
         for i = 1, max_display do
             notification_list:add(create_notification_item(history.notifications[i], i))
         end
 
-        -- If there are more notifications, show a count
+        -- "View more" indicator if there are additional notifications
         if #history.notifications > max_display then
-            notification_list:add(wibox.widget {
+            local more_count = #history.notifications - max_display
+            local more_indicator = wibox.widget {
                 {
-                    markup = helpers.colorize_text(
-                        string.format("+%d more", #history.notifications - max_display),
-                        x.color8
-                    ),
-                    font = "sans 7",
-                    align = "center",
-                    widget = wibox.widget.textbox,
+                    {
+                        markup = "<span foreground='" .. x.color4 .. "'>+" .. more_count ..
+                                 " more notification" .. (more_count > 1 and "s" or "") .. "</span>",
+                        font = "sans 8",
+                        align = "center",
+                        widget = wibox.widget.textbox,
+                    },
+                    margins = dpi(8),
+                    widget = wibox.container.margin,
                 },
-                top = dpi(5),
-                widget = wibox.container.margin,
-            })
+                bg = x.color4 .. "15",
+                shape = helpers.rrect(dpi(6)),
+                widget = wibox.container.background,
+            }
+            notification_list:add(more_indicator)
         end
     end
 end
 
--- Header with title and clear button
-local header = wibox.widget {
-    {
-        {
-            markup = helpers.colorize_text("", x.color4),
-            font = "icomoon 10",
-            widget = wibox.widget.textbox,
-        },
-        {
-            markup = " Notifications",
-            font = "sans bold 9",
-            widget = wibox.widget.textbox,
-        },
-        spacing = dpi(5),
-        layout = wibox.layout.fixed.horizontal,
-    },
+-- Modern header design
+local clear_button = wibox.widget {
     {
         {
             markup = helpers.colorize_text("", x.color9),
-            font = "icomoon 9",
+            font = "icomoon 10",
+            align = "center",
+            valign = "center",
             widget = wibox.widget.textbox,
         },
-        buttons = gears.table.join(
-            awful.button({}, 1, function()
-                history.clear()
-            end)
-        ),
-        widget = wibox.container.background,
+        margins = dpi(6),
+        widget = wibox.container.margin,
     },
-    layout = wibox.layout.align.horizontal,
+    bg = x.color9 .. "15",
+    shape = gears.shape.circle,
+    forced_width = dpi(28),
+    forced_height = dpi(28),
+    widget = wibox.container.background,
 }
 
--- Add hover cursor to clear button
-helpers.add_hover_cursor(header:get_children_by_id('')[1] or header, "hand1")
+-- Clear button hover effect
+clear_button:connect_signal("mouse::enter", function()
+    clear_button.bg = x.color9 .. "30"
+end)
+clear_button:connect_signal("mouse::leave", function()
+    clear_button.bg = x.color9 .. "15"
+end)
 
--- Main notification history widget
+clear_button:buttons(gears.table.join(
+    awful.button({}, 1, function()
+        history.clear()
+    end)
+))
+
+helpers.add_hover_cursor(clear_button, "hand1")
+
+local header = wibox.widget {
+    {
+        {
+            {
+                markup = helpers.colorize_text("", x.color4),
+                font = "icomoon 11",
+                widget = wibox.widget.textbox,
+            },
+            {
+                markup = "<span foreground='" .. x.foreground .. "'> Notifications</span>",
+                font = "sans bold 10",
+                widget = wibox.widget.textbox,
+            },
+            spacing = dpi(6),
+            layout = wibox.layout.fixed.horizontal,
+        },
+        clear_button,
+        layout = wibox.layout.align.horizontal,
+    },
+    bottom = dpi(8),
+    widget = wibox.container.margin,
+}
+
+-- Divider line for visual separation
+local divider = wibox.widget {
+    bg = x.color8 .. "20",
+    forced_height = dpi(1),
+    widget = wibox.container.background,
+}
+
+-- Main notification history widget with modern spacing
 notification_history_widget = wibox.widget {
     {
         header,
+        divider,
         {
             notification_list,
-            top = dpi(8),
+            top = dpi(12),
             widget = wibox.container.margin,
         },
-        spacing = dpi(5),
+        spacing = dpi(8),
         layout = wibox.layout.fixed.vertical,
     },
-    top = dpi(10),
-    bottom = dpi(10),
+    top = dpi(15),
+    bottom = dpi(15),
     widget = wibox.container.margin,
 }
 
