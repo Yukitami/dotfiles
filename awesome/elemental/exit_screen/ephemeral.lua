@@ -2,35 +2,17 @@ local awful = require("awful")
 local gears = require("gears")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
--- local naughty = require("naughty")
 
 local helpers = require("helpers")
+local modern_ui = require("modern_ui")
 
--- Appearance
--- icomoon symbols
-local icon_font = "icomoon bold 45"
-local poweroff_text_icon = ""
-local reboot_text_icon = ""
-local suspend_text_icon = ""
-local exit_text_icon = ""
--- local exit_text_icon = ""
--- local poweroff_text_icon = ""
--- local reboot_text_icon = ""
--- local suspend_text_icon = ""
--- local exit_text_icon = ""
-local lock_text_icon = ""
-
--- Typicons symbols
--- local icon_font = "Typicons 90"
--- local poweroff_text_icon = ""
--- local reboot_text_icon = ""
--- local suspend_text_icon = ""
--- local exit_text_icon = ""
--- local lock_text_icon = ""
-
-local button_bg = x.color0
-local button_size = dpi(120)
-
+-- Modern appearance with design tokens
+local icon_font = modern_ui.typography.icon_xxl.font
+local poweroff_text_icon = ""
+local reboot_text_icon = ""
+local suspend_text_icon = ""
+local exit_text_icon = ""
+local lock_text_icon = ""
 
 -- Commands
 local poweroff_command = function()
@@ -50,32 +32,31 @@ local lock_command = function()
     lock_screen_show()
 end
 
--- Helper function that generates the clickable buttons
-local create_button = function(symbol, hover_color, text, command)
-    local icon = wibox.widget {
-        forced_height = button_size,
-        forced_width = button_size,
+-- Modern button factory using design system
+local create_modern_button = function(icon, color, command)
+    local button_size = dpi(120)
+
+    local icon_widget = wibox.widget {
+        markup = helpers.colorize_text(icon, modern_ui.colors.text_primary),
+        font = icon_font,
         align = "center",
         valign = "center",
-        font = icon_font,
-        text = symbol,
-        -- markup = helpers.colorize_text(symbol, color),
         widget = wibox.widget.textbox()
     }
 
     local button = wibox.widget {
         {
             nil,
-            icon,
+            icon_widget,
             expand = "none",
             layout = wibox.layout.align.horizontal
         },
         forced_height = button_size,
         forced_width = button_size,
-        border_width = dpi(8),
-        border_color = button_bg,
-        shape = helpers.rrect(dpi(20)),
-        bg = button_bg,
+        border_width = dpi(3),
+        border_color = x.color8 .. "30",
+        shape = helpers.rrect(modern_ui.radius.xl),
+        bg = modern_ui.colors.surface_0,
         widget = wibox.container.background
     }
 
@@ -86,28 +67,29 @@ local create_button = function(symbol, hover_color, text, command)
         end)
     ))
 
-    -- Change color on hover
+    -- Modern hover effects
     button:connect_signal("mouse::enter", function ()
-        icon.markup = helpers.colorize_text(icon.text, hover_color)
-        button.border_color = hover_color
+        icon_widget.markup = helpers.colorize_text(icon, color)
+        button.border_color = color .. "80"
+        button.bg = color .. "15"
     end)
     button:connect_signal("mouse::leave", function ()
-        icon.markup = helpers.colorize_text(icon.text, x.foreground)
-        button.border_color = button_bg
+        icon_widget.markup = helpers.colorize_text(icon, modern_ui.colors.text_primary)
+        button.border_color = x.color8 .. "30"
+        button.bg = modern_ui.colors.surface_0
     end)
 
-    -- Use helper function to change the cursor on hover
     helpers.add_hover_cursor(button, "hand1")
 
     return button
 end
 
--- Create the buttons
-local poweroff = create_button(poweroff_text_icon, x.color1, "Poweroff", poweroff_command)
-local reboot = create_button(reboot_text_icon, x.color2, "Reboot", reboot_command)
-local suspend = create_button(suspend_text_icon, x.color3, "Suspend", suspend_command)
-local exit = create_button(exit_text_icon, x.color4, "Exit", exit_command)
-local lock = create_button(lock_text_icon, x.color5, "Lock", lock_command)
+-- Create modern buttons with color coding
+local poweroff = create_modern_button(poweroff_text_icon, modern_ui.colors.accent_error, poweroff_command)
+local reboot = create_modern_button(reboot_text_icon, modern_ui.colors.accent_warning, reboot_command)
+local suspend = create_modern_button(suspend_text_icon, modern_ui.colors.accent_info, suspend_command)
+local exit = create_modern_button(exit_text_icon, modern_ui.colors.accent_primary, exit_command)
+local lock = create_modern_button(lock_text_icon, modern_ui.colors.accent_secondary, lock_command)
 
 -- Create the exit screen wibox
 exit_screen = wibox({visible = false, ontop = true, type = "dock"})
@@ -169,7 +151,7 @@ exit_screen:buttons(gears.table.join(
     end)
 ))
 
--- Item placement
+-- Modern item placement with better spacing
 exit_screen:setup {
     nil,
     {
@@ -180,7 +162,7 @@ exit_screen:setup {
             suspend,
             exit,
             lock,
-            spacing = dpi(50),
+            spacing = modern_ui.spacing.xxxl,
             layout = wibox.layout.fixed.horizontal
         },
         expand = "none",

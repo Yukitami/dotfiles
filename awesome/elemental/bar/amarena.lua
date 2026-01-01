@@ -5,6 +5,7 @@ local beautiful = require("beautiful")
 
 local helpers = require("helpers")
 local keys = require("keys")
+local modern_ui = require("modern_ui")
 
 local dock_autohide_delay = 0.5 -- seconds
 
@@ -76,9 +77,9 @@ awful.screen.connect_for_each_screen(function(s)
         filter  = awful.widget.taglist.filter.all,
         buttons = keys.taglist_buttons,
         layout = {
-            spacing = 10,
+            spacing = modern_ui.spacing.md,
             spacing_widget = {
-                color  = '#00ff00',
+                color  = '#00000000',
                 shape  = gears.shape.circle,
                 widget = wibox.widget.separator,
             },
@@ -205,7 +206,7 @@ awful.screen.connect_for_each_screen(function(s)
 
     -- Create a system tray widget
     s.systray = wibox.widget.systray()
-    -- Create the tray box
+    -- Modern tray box with card styling
     s.traybox = wibox({ screen = s, width = dpi(150), height = beautiful.wibar_height, bg = "#00000000", visible = false, ontop = true})
     s.traybox:setup {
         {
@@ -215,11 +216,13 @@ awful.screen.connect_for_each_screen(function(s)
                 expand = "none",
                 layout = wibox.layout.align.horizontal,
             },
-            margins = dpi(10),
+            margins = modern_ui.spacing.md,
             widget = wibox.container.margin
         },
-        bg = beautiful.bg_systray,
-        shape = helpers.rrect(beautiful.border_radius),
+        bg = modern_ui.colors.surface_0,
+        shape = helpers.rrect(modern_ui.radius.lg),
+        border_width = dpi(1),
+        border_color = x.color8 .. "30",
         widget = wibox.container.background
     }
     awful.placement.bottom_right(s.traybox, { margins = beautiful.useless_gap * 2 })
