@@ -5,13 +5,14 @@ local beautiful = require("beautiful")
 local apps = require("apps")
 
 local helpers = require("helpers")
+local modern_ui = require("modern_ui")
 
 -- Helper function that changes the appearance of progress bars and their icons
 local function format_progress_bar(bar)
     -- Since we will rotate the bars 90 degrees, width and height are reversed
     bar.forced_width = dpi(70)
     bar.forced_height = dpi(30)
-    bar.shape = gears.shape.rounded_bar
+    bar.shape = helpers.rrect(modern_ui.radius.full)
     bar.bar_shape = gears.shape.rectangle
     local w = wibox.widget{
         bar,
@@ -26,42 +27,42 @@ end
 -- Weather widget with text icons
 local weather_widget = require("noodle.text_weather")
 local weather_widget_icon = weather_widget:get_all_children()[1]
--- weather_widget_icon.font = "Typicons 18"
-weather_widget_icon.font = "icomoon 16"
+weather_widget_icon.font = modern_ui.typography.icon_lg.font
 weather_widget_icon.align = "center"
 weather_widget_icon.valign = "center"
--- So that content does not get cropped
--- weather_widget_icon.forced_width = dpi(50)
 local weather_widget_description = weather_widget:get_all_children()[2]
-weather_widget_description.font = "sans medium 14"
+weather_widget_description.font = modern_ui.typography.body_lg.font
 local weather_widget_temperature = weather_widget:get_all_children()[3]
-weather_widget_temperature.font = "sans medium 14"
+weather_widget_temperature.font = modern_ui.typography.heading_lg.font
 
-local weather = wibox.widget{
-    {
-        nil,
-        weather_widget_description,
-        expand = "none",
-        layout = wibox.layout.align.horizontal
-    },
-    {
-        nil,
+-- Modern weather card
+local weather = modern_ui.create_card({
+    content = wibox.widget{
         {
-            weather_widget_icon,
-            weather_widget_temperature,
-            spacing = dpi(5),
-            layout = wibox.layout.fixed.horizontal
+            nil,
+            weather_widget_description,
+            expand = "none",
+            layout = wibox.layout.align.horizontal
         },
-        expand = "none",
-        layout = wibox.layout.align.horizontal
+        {
+            nil,
+            {
+                weather_widget_icon,
+                weather_widget_temperature,
+                spacing = modern_ui.spacing.sm,
+                layout = wibox.layout.fixed.horizontal
+            },
+            expand = "none",
+            layout = wibox.layout.align.horizontal
+        },
+        spacing = modern_ui.spacing.xs,
+        layout = wibox.layout.fixed.vertical
     },
-    spacing = dpi(5),
-    layout = wibox.layout.fixed.vertical
-    -- nil,
-    -- weather_widget,
-    -- layout = wibox.layout.align.horizontal,
-    -- expand = "none"
-}
+    padding = modern_ui.spacing.md,
+    bg_color = modern_ui.colors.surface_0,
+    radius = modern_ui.radius.lg,
+    border = modern_ui.elevation.low,
+})
 
 local temperature_bar = require("noodle.temperature_bar")
 local temperature = format_progress_bar(temperature_bar)
@@ -118,11 +119,12 @@ local make_little_dot = function (color)
         bg = color,
         forced_width = dpi(10),
         forced_height = dpi(10),
-        shape = helpers.rrect(dpi(2)),
+        shape = helpers.rrect(modern_ui.radius.sm),
         widget = wibox.container.background
     }
 end
 
+-- Modern time display
 local time = {
     {
         font = "biotif extra bold 44",
@@ -136,7 +138,7 @@ local time = {
             make_little_dot(x.color1),
             make_little_dot(x.color4),
             make_little_dot(x.color5),
-            spacing = dpi(10),
+            spacing = modern_ui.spacing.md,
             widget = wibox.layout.fixed.vertical
         },
         expand = "none",
@@ -148,7 +150,7 @@ local time = {
         valign = "top",
         widget = minutes
     },
-    spacing = dpi(20),
+    spacing = modern_ui.spacing.xl,
     layout = wibox.layout.fixed.horizontal
 }
 
@@ -167,8 +169,8 @@ local mpd_song = require("noodle.mpd_song")
 local mpd_widget_children = mpd_song:get_all_children()
 local mpd_title = mpd_widget_children[1]
 local mpd_artist = mpd_widget_children[2]
-mpd_title.font = "sans medium 14"
-mpd_artist.font = "sans medium 10"
+mpd_title.font = modern_ui.typography.heading_md.font
+mpd_artist.font = modern_ui.typography.body_md.font
 
 -- Set forced height in order to limit the widgets to one line.
 -- Might need to be adjusted depending on the font.
@@ -188,34 +190,41 @@ mpd_song:buttons(gears.table.join(
     end)
 ))
 
+-- Modern MPD card
+local mpd_card = modern_ui.create_card({
+    content = wibox.widget{
+        mpd_buttons,
+        mpd_song,
+        spacing = modern_ui.spacing.sm,
+        layout = wibox.layout.fixed.vertical
+    },
+    padding = modern_ui.spacing.lg,
+    bg_color = modern_ui.colors.surface_0,
+    radius = modern_ui.radius.lg,
+    border = modern_ui.elevation.low,
+})
+
 local search_icon = wibox.widget {
-    font = "icomoon bold 10",
+    font = modern_ui.typography.icon_sm.font,
     align = "center",
     valign = "center",
     widget = wibox.widget.textbox()
 }
 
 local reset_search_icon = function ()
-    search_icon.markup = helpers.colorize_text("", x.color3)
+    search_icon.markup = helpers.colorize_text("", modern_ui.colors.accent_primary)
 end
 reset_search_icon()
 
 local search_text = wibox.widget {
-    -- markup = helpers.colorize_text("Search", x.color8),
     align = "center",
     valign = "center",
-    font = "sans 9",
+    font = modern_ui.typography.body_md.font,
     widget = wibox.widget.textbox()
 }
 
-local search_bar = wibox.widget {
-    shape = gears.shape.rounded_bar,
-    bg = x.color0,
-    widget = wibox.container.background()
-}
-
+-- Modern search bar
 local search = wibox.widget{
-    -- search_bar,
     {
         {
             search_icon,
@@ -224,21 +233,32 @@ local search = wibox.widget{
                 bottom = dpi(2),
                 widget = wibox.container.margin
             },
+            spacing = modern_ui.spacing.sm,
             layout = wibox.layout.fixed.horizontal
         },
-        left = dpi(15),
+        left = modern_ui.spacing.lg,
         widget = wibox.container.margin
     },
-    forced_height = dpi(35),
+    forced_height = dpi(40),
     forced_width = dpi(200),
-    shape = gears.shape.rounded_bar,
-    bg = x.color0,
+    shape = helpers.rrect(modern_ui.radius.full),
+    bg = modern_ui.colors.surface_0,
+    border_width = dpi(1),
+    border_color = x.color8 .. "30",
     widget = wibox.container.background()
-    -- layout = wibox.layout.stack
 }
 
+-- Modern search bar hover effect
+search:connect_signal("mouse::enter", function()
+    search.border_color = modern_ui.colors.accent_primary .. "60"
+end)
+
+search:connect_signal("mouse::leave", function()
+    search.border_color = x.color8 .. "30"
+end)
+
 local function generate_prompt_icon(icon, color)
-    return "<span font='icomoon 10' foreground='" .. color .."'>" .. icon .. "</span> "
+    return "<span font='" .. modern_ui.typography.icon_sm.font .. "' foreground='" .. color .."'>" .. icon .. "</span> "
 end
 
 function sidebar_activate_prompt(action)
@@ -246,9 +266,9 @@ function sidebar_activate_prompt(action)
     search_icon.visible = false
     local prompt
     if action == "run" then
-        prompt = generate_prompt_icon("", x.color2)
+        prompt = generate_prompt_icon("", modern_ui.colors.accent_success)
     elseif action == "web_search" then
-        prompt = generate_prompt_icon("", x.color4)
+        prompt = generate_prompt_icon("", modern_ui.colors.accent_primary)
     end
     helpers.prompt(action, search_text, prompt, function()
         search_icon.visible = true
@@ -287,10 +307,10 @@ volume:buttons(gears.table.join(
     -- Right click - Run or raise pavucontrol
     awful.button({ }, 3, apps.volume),
     -- Scroll - Increase / Decrease volume
-    awful.button({ }, 4, function () 
+    awful.button({ }, 4, function ()
         helpers.volume_control(2)
     end),
-    awful.button({ }, 5, function () 
+    awful.button({ }, 5, function ()
         helpers.volume_control(-2)
     end)
 ))
@@ -309,16 +329,16 @@ local adaptive_tooltip = wibox.widget {
     layout = wibox.layout.stack
 }
 
--- Create tooltip for widget w
-local tooltip_counter = 0
-local create_tooltip = function(w)
+-- Modern tooltip styling
+local function create_tooltip(w)
     local tooltip = wibox.widget {
-        font = "sans medium 10",
+        font = modern_ui.typography.body_md.font,
         align = "center",
         valign = "center",
         widget = wibox.widget.textbox
     }
 
+    tooltip_counter = tooltip_counter or 0
     tooltip_counter = tooltip_counter + 1
     local index = tooltip_counter
 
@@ -338,35 +358,35 @@ end
 
 local brightness_tooltip = create_tooltip(brightness_bar)
 awesome.connect_signal("evil::brightness", function(value)
-    brightness_tooltip.markup = "Your screen is <span foreground='" .. beautiful.brightness_bar_active_color .."'><b>" .. tostring(value) .. "%</b></span> bright"
+    brightness_tooltip.markup = "<span foreground='" .. modern_ui.colors.text_secondary .. "'>Your screen is </span><span foreground='" .. beautiful.brightness_bar_active_color .."'><b>" .. tostring(value) .. "%</b></span><span foreground='" .. modern_ui.colors.text_secondary .. "'> bright</span>"
 end)
 
 local cpu_tooltip = create_tooltip(cpu_bar)
 awesome.connect_signal("evil::cpu", function(value)
-    cpu_tooltip.markup = "You are using <span foreground='" .. beautiful.cpu_bar_active_color .."'><b>" .. tostring(value) .. "%</b></span> of CPU"
+    cpu_tooltip.markup = "<span foreground='" .. modern_ui.colors.text_secondary .. "'>You are using </span><span foreground='" .. beautiful.cpu_bar_active_color .."'><b>" .. tostring(value) .. "%</b></span><span foreground='" .. modern_ui.colors.text_secondary .. "'> of CPU</span>"
 end)
 
 local ram_tooltip = create_tooltip(ram_bar)
 awesome.connect_signal("evil::ram", function(value, _)
-    ram_tooltip.markup = "You are using <span foreground='" .. beautiful.ram_bar_active_color .."'><b>" .. string.format("%.1f", value / 1000) .. "G</b></span> of memory"
+    ram_tooltip.markup = "<span foreground='" .. modern_ui.colors.text_secondary .. "'>You are using </span><span foreground='" .. beautiful.ram_bar_active_color .."'><b>" .. string.format("%.1f", value / 1000) .. "G</b></span><span foreground='" .. modern_ui.colors.text_secondary .. "'> of memory</span>"
 end)
 
 local volume_tooltip = create_tooltip(volume_bar)
 awesome.connect_signal("evil::volume", function(value, muted)
-    volume_tooltip.markup = "The volume is at <span foreground='" .. beautiful.volume_bar_active_color .."'><b>" .. tostring(value) .. "%</b></span>"
+    volume_tooltip.markup = "<span foreground='" .. modern_ui.colors.text_secondary .. "'>The volume is at </span><span foreground='" .. beautiful.volume_bar_active_color .."'><b>" .. tostring(value) .. "%</b></span>"
     if muted then
-        volume_tooltip.markup = volume_tooltip.markup.." and <span foreground='" .. beautiful.volume_bar_active_color .."'><b>muted</b></span>"
+        volume_tooltip.markup = volume_tooltip.markup.."<span foreground='" .. modern_ui.colors.text_secondary .. "'> and </span><span foreground='" .. beautiful.volume_bar_active_color .."'><b>muted</b></span>"
     end
 end)
 
 local temperature_tooltip = create_tooltip(temperature_bar)
 awesome.connect_signal("evil::temperature", function(value)
-    temperature_tooltip.markup = "Your CPU temperature is at <span foreground='" .. beautiful.temperature_bar_active_color .."'><b>" .. tostring(value) .. "°C</b></span>"
+    temperature_tooltip.markup = "<span foreground='" .. modern_ui.colors.text_secondary .. "'>Your CPU temperature is at </span><span foreground='" .. beautiful.temperature_bar_active_color .."'><b>" .. tostring(value) .. "°C</b></span>"
 end)
 
 local battery_tooltip = create_tooltip(cute_battery_face)
 awesome.connect_signal("evil::battery", function(value)
-    battery_tooltip.markup = "Your battery is at <span foreground='" .. beautiful.battery_bar_active_color .."'><b>" .. tostring(value) .. "%</b></span>"
+    battery_tooltip.markup = "<span foreground='" .. modern_ui.colors.text_secondary .. "'>Your battery is at </span><span foreground='" .. beautiful.battery_bar_active_color .."'><b>" .. tostring(value) .. "%</b></span>"
 end)
 
 -- Add clickable mouse effects on some widgets
@@ -454,53 +474,53 @@ if user.sidebar.show_on_mouse_screen_edge then
 end
 
 
--- Item placement
+-- Item placement with modern spacing
 sidebar:setup {
     {
         { ----------- TOP GROUP -----------
             {
-                helpers.vertical_pad(dpi(30)),
+                helpers.vertical_pad(modern_ui.spacing.xxxl),
                 {
                     nil,
                     {
                         time,
-                        spacing = dpi(12),
+                        spacing = modern_ui.spacing.md,
                         layout = wibox.layout.fixed.horizontal
                     },
                     expand = "none",
                     layout = wibox.layout.align.horizontal
                 },
-                helpers.vertical_pad(dpi(20)),
+                helpers.vertical_pad(modern_ui.spacing.xl),
                 day_of_the_week,
-                helpers.vertical_pad(dpi(25)),
+                helpers.vertical_pad(modern_ui.spacing.xxl),
                 {
                     nil,
                     cute_battery_face,
                     expand = "none",
                     layout = wibox.layout.align.horizontal,
                 },
-                helpers.vertical_pad(dpi(30)),
+                helpers.vertical_pad(modern_ui.spacing.xxxl),
                 layout = wibox.layout.fixed.vertical
             },
             layout = wibox.layout.fixed.vertical
         },
         { ----------- MIDDLE GROUP -----------
             {
-                helpers.vertical_pad(dpi(30)),
-                weather,
+                helpers.vertical_pad(modern_ui.spacing.xxxl),
                 {
-                    {
-                        mpd_buttons,
-                        mpd_song,
-                        spacing = dpi(5),
-                        layout = wibox.layout.fixed.vertical
-                    },
-                    top = dpi(40),
-                    bottom = dpi(60),
-                    left = dpi(20),
-                    right = dpi(20),
+                    weather,
+                    left = modern_ui.spacing.xl,
+                    right = modern_ui.spacing.xl,
                     widget = wibox.container.margin
                 },
+                helpers.vertical_pad(modern_ui.spacing.xl),
+                {
+                    mpd_card,
+                    left = modern_ui.spacing.xl,
+                    right = modern_ui.spacing.xl,
+                    widget = wibox.container.margin
+                },
+                helpers.vertical_pad(modern_ui.spacing.xxl),
                 {
                     nil,
                     {
@@ -509,22 +529,21 @@ sidebar:setup {
                         temperature,
                         ram,
                         brightness,
-                        spacing = dpi(5),
-                        -- layout = wibox.layout.fixed.vertical
+                        spacing = modern_ui.spacing.sm,
                         layout = wibox.layout.fixed.horizontal
                     },
                     expand = "none",
                     layout = wibox.layout.align.horizontal
                 },
-                helpers.vertical_pad(dpi(15)),
+                helpers.vertical_pad(modern_ui.spacing.lg),
                 -- Notification history
                 {
                     notification_history_widget,
-                    left = dpi(20),
-                    right = dpi(20),
+                    left = modern_ui.spacing.xl,
+                    right = modern_ui.spacing.xl,
                     widget = wibox.container.margin
                 },
-                helpers.vertical_pad(dpi(15)),
+                helpers.vertical_pad(modern_ui.spacing.lg),
                 layout = wibox.layout.fixed.vertical
             },
             shape = helpers.prrect(beautiful.sidebar_border_radius, false, true, false, false),
@@ -540,7 +559,7 @@ sidebar:setup {
                         expand = "none",
                         layout = wibox.layout.align.horizontal,
                     },
-                    helpers.vertical_pad(dpi(30)),
+                    helpers.vertical_pad(modern_ui.spacing.xxxl),
                     {
                         nil,
                         search,
@@ -549,9 +568,9 @@ sidebar:setup {
                     },
                     layout = wibox.layout.fixed.vertical
                 },
-                left = dpi(20),
-                right = dpi(20),
-                bottom = dpi(30),
+                left = modern_ui.spacing.xl,
+                right = modern_ui.spacing.xl,
+                bottom = modern_ui.spacing.xxxl,
                 widget = wibox.container.margin
             },
             bg = x.color0.."66",
