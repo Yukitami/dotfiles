@@ -6,6 +6,9 @@ local apps = require("apps")
 
 local helpers = require("helpers")
 
+-- Notification history widget
+local notification_history = require("noodle.notification_history")
+
 -- Helper function that changes the appearance of progress bars and their icons
 local function format_progress_bar(bar)
     -- Since we will rotate the bars 90 degrees, width and height are reversed
@@ -529,7 +532,9 @@ sidebar:setup {
                         expand = "none",
                         layout = wibox.layout.align.horizontal,
                     },
-                    helpers.vertical_pad(dpi(30)),
+                    helpers.vertical_pad(dpi(15)),
+                    notification_history,
+                    helpers.vertical_pad(dpi(15)),
                     {
                         nil,
                         search,
